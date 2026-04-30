@@ -26,7 +26,7 @@ function ProtectedRoute({ children }) {
   }
   
   // Only allow masteradmin role
-  if (auth.user?.role !== 'masteradmin') {
+  if (auth.role !== 'masteradmin') {
     return <Navigate to="/login" replace />;
   }
   

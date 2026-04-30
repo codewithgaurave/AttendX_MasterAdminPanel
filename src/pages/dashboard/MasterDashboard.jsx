@@ -283,18 +283,16 @@ export default function MasterDashboard() {
 }
 
 function SuperAdminCard({ superAdmin, onUpdateSubscription, onDeactivate, onViewDetails, getDaysLeft }) {
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const daysLeft = getDaysLeft(superAdmin.validUntil);
   const isExpired = superAdmin.isExpired || daysLeft <= 0;
 
   return (
-    <>
-      <div style={{ 
-        background: 'var(--surface)', 
-        border: `2px solid ${isExpired ? 'var(--danger)' : 'var(--border)'}`, 
-        borderRadius: 4, 
-        padding: 16 
-      }}>
+    <div style={{ 
+      background: 'var(--surface)', 
+      border: `2px solid ${isExpired ? 'var(--danger)' : 'var(--border)'}`, 
+      borderRadius: 4, 
+      padding: 16 
+    }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
           <div className="emp-avt" style={{ width: 40, height: 40, fontSize: 14 }}>
             {superAdmin.name.charAt(0)}
@@ -340,13 +338,6 @@ function SuperAdminCard({ superAdmin, onUpdateSubscription, onDeactivate, onView
             <Eye size={12} />View Admins
           </button>
           <button 
-            className="btn btn-sm" 
-            onClick={() => setShowSubscriptionModal(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-          >
-            <Edit2 size={12} />Subscription
-          </button>
-          <button 
             className="btn btn-danger btn-sm" 
             onClick={() => onDeactivate(superAdmin._id, superAdmin.name)}
             style={{ display: 'flex', alignItems: 'center', gap: 4 }}
@@ -355,17 +346,8 @@ function SuperAdminCard({ superAdmin, onUpdateSubscription, onDeactivate, onView
           </button>
         </div>
       </div>
-
-      {showSubscriptionModal && (
-        <SubscriptionModal 
-          superAdmin={superAdmin}
-          onClose={() => setShowSubscriptionModal(false)}
-          onUpdate={onUpdateSubscription}
-        />
-      )}
-    </>
-  );
-}
+    );
+  }
 
 function CreateSuperAdminModal({ onClose, onCreate }) {
   const [form, setForm] = useState({
@@ -418,63 +400,6 @@ function CreateSuperAdminModal({ onClose, onCreate }) {
           </div>
           
           <button type="submit" className="btn btn-primary btn-full">Create Super Admin</button>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function SubscriptionModal({ superAdmin, onClose, onUpdate }) {
-  const [form, setForm] = useState({
-    accountType: 'paid',
-    validityDays: 30,
-    maxAdmins: superAdmin.maxAdmins,
-    paymentAmount: '',
-    paymentMethod: 'cash'
-  });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onUpdate(superAdmin._id, form);
-    onClose();
-  };
-
-  return (
-    <div className="modal-overlay active" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal" style={{ maxWidth: 400 }}>
-        <div className="modal-title">
-          Update Subscription - {superAdmin.name}
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
-        
-        <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-            <div className="form-group">
-              <label>Validity (Days)</label>
-              <input className="form-inp" type="number" value={form.validityDays} onChange={e => setForm({...form, validityDays: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label>Max Admins</label>
-              <input className="form-inp" type="number" value={form.maxAdmins} onChange={e => setForm({...form, maxAdmins: e.target.value})} />
-            </div>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-            <div className="form-group">
-              <label>Payment Amount</label>
-              <input className="form-inp" type="number" value={form.paymentAmount} onChange={e => setForm({...form, paymentAmount: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label>Payment Method</label>
-              <select className="form-inp" value={form.paymentMethod} onChange={e => setForm({...form, paymentMethod: e.target.value})}>
-                <option value="cash">Cash</option>
-                <option value="online">Online</option>
-                <option value="cheque">Cheque</option>
-              </select>
-            </div>
-          </div>
-          
-          <button type="submit" className="btn btn-primary btn-full">Update Subscription</button>
         </form>
       </div>
     </div>

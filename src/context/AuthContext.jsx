@@ -24,15 +24,15 @@ export function AuthProvider({ children }) {
       
       const { data } = await api.post('/auth/login', loginData);
       
-      if (data.user.role !== expectedRole) {
+      if (data.role !== expectedRole) {
         toast(`Access denied. This portal is for ${expectedRole}s only.`);
         return false;
       }
       
       localStorage.setItem('token', data.token);
-      localStorage.setItem('role', data.user.role);
+      localStorage.setItem('role', data.role);
       localStorage.setItem('user', JSON.stringify(data.user));
-      setAuth({ token: data.token, role: data.user.role, user: data.user });
+      setAuth({ token: data.token, role: data.role, user: data.user });
       
       toast(`Welcome back, ${data.user.name}!`);
       return true;
