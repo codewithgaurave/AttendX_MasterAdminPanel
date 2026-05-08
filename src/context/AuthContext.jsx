@@ -13,26 +13,25 @@ export function AuthProvider({ children }) {
   });
   const [loading, setLoading] = useState(false);
 
-  const login = async (phoneOrEmail, password, expectedRole = 'masteradmin') => {
+  const login = async (email, password) => {
     setLoading(true);
     try {
       const loginData = {
-        password,
-        role: expectedRole,
-        ...(expectedRole === 'admin' ? { phone: phoneOrEmail } : { email: phoneOrEmail })
+        email,
+        password
       };
       
-      const { data } = await api.post('/auth/login', loginData);
+      const { data } = await api.post('/master/login', loginData);
       
-      if (data.role !== expectedRole) {
-        toast(`Access denied. This portal is for ${expectedRole}s only.`);
+      if (data.user.role !== 'masteradmin') {
+        toast('Access denied. This portal is for Master Admins only.');
         return false;
       }
       
       localStorage.setItem('token', data.token);
-      localStorage.setItem('role', data.role);
+      localStorage.setItem('role', data.user.role);
       localStorage.setItem('user', JSON.stringify(data.user));
-      setAuth({ token: data.token, role: data.role, user: data.user });
+      setAuth({ token: data.token, role: data.user.role, user: data.user });
       
       toast(`Welcome back, ${data.user.name}!`);
       return true;
@@ -43,7 +42,7 @@ export function AuthProvider({ children }) {
       if (error.code === 'ERR_NETWORK') {
         message = 'Network error. Please check if server is running.';
       } else if (error.response?.status === 404) {
-        message = 'User not found';
+        message = 'Invalid credentials';
       } else if (error.response?.status === 401) {
         message = 'Invalid credentials';
       } else if (error.response?.data?.message) {

@@ -14,6 +14,8 @@ export default function MasterDashboard() {
   const [superAdmins, setSuperAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingSuperAdmin, setEditingSuperAdmin] = useState(null);
   const [selectedSuperAdmin, setSelectedSuperAdmin] = useState(null);
   const [superAdminDetails, setSuperAdminDetails] = useState(null);
   const [renewalRequests, setRenewalRequests] = useState([]);
@@ -23,6 +25,11 @@ export default function MasterDashboard() {
   useEffect(() => {
     loadDashboard();
     loadRenewalRequests();
+    // Test toast on component mount
+    console.log('Testing toast function:', typeof toast);
+    setTimeout(() => {
+      toast('Dashboard loaded successfully!');
+    }, 1000);
   }, []);
 
   const loadDashboard = async () => {
@@ -97,6 +104,23 @@ export default function MasterDashboard() {
       loadDashboard();
     } catch (err) {
       toast(err.response?.data?.message || 'Error creating super admin');
+    }
+  };
+
+  const editSuperAdmin = (superAdmin) => {
+    setEditingSuperAdmin(superAdmin);
+    setShowEditModal(true);
+  };
+
+  const updateSuperAdmin = async (formData) => {
+    try {
+      await api.put(`/master/superadmin/${editingSuperAdmin._id}`, formData);
+      toast('Super Admin updated successfully');
+      setShowEditModal(false);
+      setEditingSuperAdmin(null);
+      loadDashboard();
+    } catch (err) {
+      toast(err.response?.data?.message || 'Error updating super admin');
     }
   };
 
@@ -266,6 +290,8 @@ export default function MasterDashboard() {
               onUpdateSubscription={updateSubscription}
               onDeactivate={deactivateSuperAdmin}
               onViewDetails={loadSuperAdminDetails}
+              onPasswordChange={loadDashboard}
+              onEdit={editSuperAdmin}
               getDaysLeft={getDaysLeft}
             />
           ))}
@@ -278,13 +304,39 @@ export default function MasterDashboard() {
           onCreate={createSuperAdmin}
         />
       )}
+
+      {showEditModal && editingSuperAdmin && (
+        <EditSuperAdminModal 
+          superAdmin={editingSuperAdmin}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingSuperAdmin(null);
+          }}
+          onUpdate={updateSuperAdmin}
+        />
+      )}
     </>
   );
 }
 
-function SuperAdminCard({ superAdmin, onUpdateSubscription, onDeactivate, onViewDetails, getDaysLeft }) {
+function SuperAdminCard({ superAdmin, onUpdateSubscription, onDeactivate, onViewDetails, getDaysLeft, onPasswordChange, onEdit }) {
   const daysLeft = getDaysLeft(superAdmin.validUntil);
   const isExpired = superAdmin.isExpired || daysLeft <= 0;
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+  const handlePasswordChange = async (newPassword) => {
+    try {
+      await api.put(`/master/superadmin/${superAdmin._id}/password`, { password: newPassword });
+      toast('Password changed successfully');
+      setShowPasswordModal(false);
+      // Call parent function to refresh data
+      if (onPasswordChange) {
+        onPasswordChange();
+      }
+    } catch (err) {
+      toast(err.response?.data?.message || 'Error changing password');
+    }
+  };
 
   return (
     <div style={{ 
@@ -299,7 +351,10 @@ function SuperAdminCard({ superAdmin, onUpdateSubscription, onDeactivate, onView
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 14 }}>{superAdmin.name}</div>
-            <div style={{ fontSize: 11, color: 'var(--ink2)' }}>{superAdmin.email}</div>
+            <div style={{ fontSize: 11, color: 'var(--ink2)' }}>{superAdmin.phone}</div>
+            {superAdmin.email && (
+              <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{superAdmin.email}</div>
+            )}
           </div>
           <span className={`badge ${superAdmin.accountType === 'paid' ? 'b-in' : 'b-out'}`}>
             {superAdmin.accountType.toUpperCase()}
@@ -310,6 +365,10 @@ function SuperAdminCard({ superAdmin, onUpdateSubscription, onDeactivate, onView
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
             <span>Company:</span>
             <span style={{ fontWeight: 600 }}>{superAdmin.company || 'N/A'}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span>Password:</span>
+            <span style={{ fontWeight: 600, fontFamily: 'monospace', color: 'var(--primary)' }}>{superAdmin.plainPassword || 'Not Available'}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
             <span>Max Admins:</span>
@@ -338,6 +397,20 @@ function SuperAdminCard({ superAdmin, onUpdateSubscription, onDeactivate, onView
             <Eye size={12} />View Admins
           </button>
           <button 
+            className="btn btn-secondary btn-sm" 
+            onClick={() => onEdit(superAdmin)}
+            style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+          >
+            <Edit2 size={12} />Edit
+          </button>
+          <button 
+            className="btn btn-secondary btn-sm" 
+            onClick={() => setShowPasswordModal(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+          >
+            <Edit2 size={12} />Password
+          </button>
+          <button 
             className="btn btn-danger btn-sm" 
             onClick={() => onDeactivate(superAdmin._id, superAdmin.name)}
             style={{ display: 'flex', alignItems: 'center', gap: 4 }}
@@ -345,22 +418,188 @@ function SuperAdminCard({ superAdmin, onUpdateSubscription, onDeactivate, onView
             <Trash2 size={12} />Deactivate
           </button>
         </div>
+        
+        {showPasswordModal && (
+          <PasswordChangeModal 
+            title={`Change Password - ${superAdmin.name}`}
+            onClose={() => setShowPasswordModal(false)}
+            onSubmit={handlePasswordChange}
+          />
+        )}
       </div>
     );
   }
+
+function EditSuperAdminModal({ superAdmin, onClose, onUpdate }) {
+  const [form, setForm] = useState({
+    name: superAdmin.name || '',
+    email: superAdmin.email || '',
+    phone: superAdmin.phone || '',
+    company: superAdmin.company || ''
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    console.log('Edit form submitted with data:', form);
+    
+    // Validation checks with proper error messages
+    if (!form.name.trim()) {
+      console.log('Name validation failed');
+      toast('Name is required');
+      return;
+    }
+    if (!form.phone.trim()) {
+      console.log('Phone validation failed');
+      toast('Phone number is required');
+      return;
+    }
+    if (form.phone.length < 10) {
+      console.log('Phone length validation failed');
+      toast('Phone number must be at least 10 digits');
+      return;
+    }
+    if (form.email && !form.email.includes('@')) {
+      console.log('Email validation failed');
+      toast('Please enter a valid email address');
+      return;
+    }
+    
+    console.log('All validations passed, updating super admin');
+    setLoading(true);
+    try {
+      await onUpdate(form);
+    } catch (error) {
+      console.log('Error in onUpdate:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay active" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 500 }}>
+        <div className="modal-title">
+          Edit Super Admin - {superAdmin.name}
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        
+        <form onSubmit={handleSubmit}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <div className="form-group">
+              <label>Name *</label>
+              <input 
+                className="form-inp" 
+                value={form.name} 
+                onChange={e => setForm({...form, name: e.target.value})} 
+              />
+            </div>
+            <div className="form-group">
+              <label>Phone *</label>
+              <input 
+                className="form-inp" 
+                value={form.phone} 
+                onChange={e => setForm({...form, phone: e.target.value})} 
+              />
+            </div>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <div className="form-group">
+              <label>Email</label>
+              <input 
+                className="form-inp" 
+                type="email" 
+                value={form.email} 
+                onChange={e => setForm({...form, email: e.target.value})} 
+              />
+            </div>
+            <div className="form-group">
+              <label>Company</label>
+              <input 
+                className="form-inp" 
+                value={form.company} 
+                onChange={e => setForm({...form, company: e.target.value})} 
+              />
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button 
+              type="button" 
+              className="btn btn-sm" 
+              onClick={onClose}
+              style={{ flex: 1 }}
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="btn btn-primary btn-sm"
+              disabled={loading}
+              style={{ flex: 1, opacity: loading ? 0.7 : 1 }}
+            >
+              {loading ? 'Updating...' : 'Update Super Admin'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 function CreateSuperAdminModal({ onClose, onCreate }) {
   const [form, setForm] = useState({
     name: '', email: '', password: '', phone: '', company: ''
   });
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.password) {
-      toast('Please fill required fields');
+    console.log('Form submitted with data:', form);
+    
+    // Validation checks with proper error messages
+    if (!form.name.trim()) {
+      console.log('Name validation failed');
+      toast('Name is required');
       return;
     }
-    onCreate(form);
+    if (!form.phone.trim()) {
+      console.log('Phone validation failed');
+      toast('Phone number is required');
+      return;
+    }
+    if (!form.password.trim()) {
+      console.log('Password validation failed');
+      toast('Password is required');
+      return;
+    }
+    if (form.password.length < 6) {
+      console.log('Password length validation failed');
+      toast('Password must be at least 6 characters long');
+      return;
+    }
+    if (form.phone.length < 10) {
+      console.log('Phone length validation failed');
+      toast('Phone number must be at least 10 digits');
+      return;
+    }
+    if (form.email && !form.email.includes('@')) {
+      console.log('Email validation failed');
+      toast('Please enter a valid email address');
+      return;
+    }
+    
+    console.log('All validations passed, creating super admin');
+    setLoading(true);
+    try {
+      await onCreate(form);
+    } catch (error) {
+      console.log('Error in onCreate:', error);
+      // Error will be handled by onCreate function
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -378,8 +617,8 @@ function CreateSuperAdminModal({ onClose, onCreate }) {
               <input className="form-inp" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
             </div>
             <div className="form-group">
-              <label>Email *</label>
-              <input className="form-inp" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
+              <label>Phone *</label>
+              <input className="form-inp" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
             </div>
           </div>
           
@@ -389,8 +628,8 @@ function CreateSuperAdminModal({ onClose, onCreate }) {
               <input className="form-inp" type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
             </div>
             <div className="form-group">
-              <label>Phone</label>
-              <input className="form-inp" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
+              <label>Email</label>
+              <input className="form-inp" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
             </div>
           </div>
           
@@ -399,7 +638,14 @@ function CreateSuperAdminModal({ onClose, onCreate }) {
             <input className="form-inp" value={form.company} onChange={e => setForm({...form, company: e.target.value})} />
           </div>
           
-          <button type="submit" className="btn btn-primary btn-full">Create Super Admin</button>
+          <button 
+            type="submit" 
+            className="btn btn-primary btn-full"
+            disabled={loading}
+            style={{ opacity: loading ? 0.7 : 1 }}
+          >
+            {loading ? 'Creating...' : 'Create Super Admin'}
+          </button>
         </form>
       </div>
     </div>
@@ -565,7 +811,10 @@ function AdminCard({ admin, onApproveRenewal, onRejectRenewal }) {
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: 14 }}>{admin.name}</div>
-          <div style={{ fontSize: 11, color: 'var(--ink2)' }}>{admin.email}</div>
+          <div style={{ fontSize: 11, color: 'var(--ink2)' }}>{admin.phone}</div>
+          {admin.email && (
+            <div style={{ fontSize: 10, color: 'var(--ink3)' }}>{admin.email}</div>
+          )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span className={`badge ${admin.accountType === 'paid' ? 'b-in' : 'b-out'}`} style={{ fontSize: 9 }}>
@@ -945,6 +1194,98 @@ function RenewalApprovalModal({ admin, onClose, onApprove }) {
             </button>
             <button type="submit" className="btn btn-success btn-sm" style={{ flex: 1 }}>
               Approve & Upgrade to Paid
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function PasswordChangeModal({ title, onClose, onSubmit }) {
+  const [form, setForm] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Detailed validation with specific error messages
+    if (!form.newPassword.trim()) {
+      toast('New password is required');
+      return;
+    }
+    if (!form.confirmPassword.trim()) {
+      toast('Please confirm your password');
+      return;
+    }
+    if (form.newPassword.length < 6) {
+      toast('Password must be at least 6 characters long');
+      return;
+    }
+    if (form.newPassword !== form.confirmPassword) {
+      toast('Passwords do not match');
+      return;
+    }
+    if (form.newPassword.includes(' ')) {
+      toast('Password cannot contain spaces');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      await onSubmit(form.newPassword);
+    } catch (error) {
+      // Error will be handled by onSubmit function
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay active" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 400 }}>
+        <div className="modal-title">
+          {title}
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        
+        <form onSubmit={handleSubmit}>
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label>New Password</label>
+            <input 
+              className="form-inp" 
+              type="password" 
+              value={form.newPassword} 
+              onChange={e => setForm({...form, newPassword: e.target.value})}
+              placeholder="Enter new password"
+            />
+          </div>
+          
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label>Confirm Password</label>
+            <input 
+              className="form-inp" 
+              type="password" 
+              value={form.confirmPassword} 
+              onChange={e => setForm({...form, confirmPassword: e.target.value})}
+              placeholder="Confirm new password"
+            />
+          </div>
+          
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" className="btn btn-sm" onClick={onClose} style={{ flex: 1 }}>
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="btn btn-primary btn-sm" 
+              style={{ flex: 1, opacity: loading ? 0.7 : 1 }}
+              disabled={loading}
+            >
+              {loading ? 'Changing...' : 'Change Password'}
             </button>
           </div>
         </form>

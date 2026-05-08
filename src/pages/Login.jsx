@@ -16,7 +16,7 @@ export default function Login() {
       return toast('Please fill all fields');
     }
 
-    const success = await login(form.email, form.password, 'masteradmin');
+    const success = await login(form.email, form.password);
     if (success) {
       navigate('/dashboard');
     }
