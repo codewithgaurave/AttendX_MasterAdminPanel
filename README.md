@@ -1,4 +1,4 @@
-# AttendanceX - Master Admin Portal
+# AttenZo - Master Admin Portal
 
 Master Admin portal for managing SuperAdmins and system-wide operations.
 
@@ -24,7 +24,7 @@ npm run build
 ```
 
 ## Deployment
-This app should be deployed to `master.attendx.com` subdomain.
+This app should be deployed to `master.attenzo.com` subdomain.
 
 ## Role Access
 - Only Master Admin role users can access this portal
