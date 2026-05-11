@@ -48,7 +48,7 @@ export default function Login() {
             color: 'var(--ink)',
             marginBottom: 8
           }}>
-            Attend<span style={{ color: 'var(--accent)' }}>X</span>
+            Atten<span style={{ color: 'var(--accent)' }}>Zo</span>
           </div>
           <div style={{ 
             fontSize: 14, 
