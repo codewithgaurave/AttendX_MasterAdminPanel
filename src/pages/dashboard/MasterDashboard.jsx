@@ -477,7 +477,7 @@ function EditSuperAdminModal({ superAdmin, onClose, onUpdate }) {
   };
 
   return (
-    <div className="modal-overlay active" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="modal-overlay active">
       <div className="modal" style={{ maxWidth: 500 }}>
         <div className="modal-title">
           Edit Super Admin - {superAdmin.name}
@@ -603,7 +603,7 @@ function CreateSuperAdminModal({ onClose, onCreate }) {
   };
 
   return (
-    <div className="modal-overlay active" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="modal-overlay active">
       <div className="modal" style={{ maxWidth: 500 }}>
         <div className="modal-title">
           Create Super Admin
@@ -1101,7 +1101,7 @@ function RenewalApprovalModal({ admin, onClose, onApprove }) {
   };
 
   return (
-    <div className="modal-overlay active" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="modal-overlay active">
       <div className="modal" style={{ maxWidth: 500 }}>
         <div className="modal-title">
           Approve Paid Account - {admin.name}
@@ -1245,7 +1245,7 @@ function PasswordChangeModal({ title, onClose, onSubmit }) {
   };
 
   return (
-    <div className="modal-overlay active" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="modal-overlay active">
       <div className="modal" style={{ maxWidth: 400 }}>
         <div className="modal-title">
           {title}
